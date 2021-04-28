@@ -4,16 +4,19 @@ import os
 
 from TIMIT.dataset import TIMITDataset
 from TIMIT.lightning_model import LightningModel
+# from TIMIT.lightning_model_h import LightningModel
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning import Trainer
 
 from config import TIMITConfig
 import torch
 import torch.utils.data as data
+# torch.use_deterministic_algorithms(True)
+
 
 if __name__ == "__main__":
 
@@ -104,36 +107,30 @@ if __name__ == "__main__":
     print('Dataset Split (Train, Validation, Test)=', len(train_set), len(valid_set), len(test_set))
 
 
-    #Training the Model
-    logger = TensorBoardLogger('TIMIT_logs', name='')
-    logger.log_hyperparams(HPARAMS)
+    # Training the Model
+    # logger = TensorBoardLogger('TIMIT_logs', name='')
+    logger = WandbLogger(
+        name=TIMITConfig.run_name,
+        project='SpeakerProfiling'
+    )
 
     model = LightningModel(HPARAMS)
 
     checkpoint_callback = ModelCheckpoint(
-        monitor='v_loss', 
+        monitor='val/loss', 
         mode='min',
         verbose=1)
-
-    early_stop_callback = EarlyStopping(
-        monitor='val_loss',
-        min_delta=0.00,
-        patience=10,
-        verbose=True,
-        mode='min'
-        )
 
     trainer = Trainer(
         fast_dev_run=hparams.dev, 
         gpus=hparams.gpu, 
         max_epochs=hparams.epochs, 
         checkpoint_callback=checkpoint_callback,
-        # early_stop_callback=early_stop_callback,
         callbacks=[
             EarlyStopping(
-                monitor='v_loss',
+                monitor='val/loss',
                 min_delta=0.00,
-                patience=10,
+                patience=50,
                 verbose=True,
                 mode='min'
                 )

@@ -7,6 +7,7 @@ import numpy as np
 import torchaudio
 import wavencoder
 
+
 class TIMITDataset(Dataset):
     def __init__(self,
     wav_folder,
@@ -30,13 +31,13 @@ class TIMITDataset(Dataset):
         if self.noise_dataset_path:
 
             self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='random', crop_position='random'),
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
                 wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
                 wavencoder.transforms.Clipping(p=0.5),
                 ])
         else:
             self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='random', crop_position='random'),
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
                 wavencoder.transforms.Clipping(p=0.5),
                 ])
 
@@ -44,7 +45,13 @@ class TIMITDataset(Dataset):
             wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len)
             ])
 
-    
+        # self.spectral_transform = torchaudio.transforms.MelSpectrogram(normalized=True)
+        # self.spectral_transform = torchaudio.transforms.MFCC(log_mels=True)
+        # self.spec_aug = wavencoder.transforms.Compose([  
+        #     torchaudio.transforms.FrequencyMasking(10),
+        #     torchaudio.transforms.TimeMasking(10),
+        # ])
+
     def __len__(self):
         return len(self.files)
 
@@ -72,7 +79,7 @@ class TIMITDataset(Dataset):
         if self.is_train:
             wav = self.train_transform(wav)
             if type(wav).__module__ == np.__name__:
-                    wav = torch.tensor(wav)
+                    wav = torch.tensor(wav)            
         else:
             wav = self.test_transform(wav)
         
@@ -81,4 +88,7 @@ class TIMITDataset(Dataset):
 
         if type(wav).__module__ == np.__name__:
             wav = torch.tensor(wav)
+        
+        # wav = self.spec_aug(self.spectral_transform(wav))/100
+        # print(wav.min(), wav.max(), wav.mean(), wav.std())
         return wav, height, age, gender
